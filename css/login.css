@@ -1,0 +1,28 @@
+body {
+	background: #00c6ff;
+	background: -webkit-linear-gradient(to right, #0072ff, #00c6ff);
+	background: linear-gradient(to right, #0072ff, #00c6ff);
+	color: #fff;
+	margin-top: 54px;
+}
+
+* {
+	font-family: 'Roboto', sans-serif;
+}
+
+.nav__logo {
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+	
+}
+
+.slogan {
+	font-size: 4vw;
+	font-family: 'Poppins', sans-serif;
+	font-weight: 700;
+}
+
+h3 {
+	font-family: 'Poppins', sans-serif;
+}
