@@ -16,35 +16,9 @@
 
 <body>
 	<div class="app">
-		<!-- <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
-
-			<a class="navbar-brand nav__logo">
-				<img src="icons/xaca-logo-color.svg" height="30" width="80" alt="">
-			</a>
-			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Alternar navegación">
-				<span class="navbar-toggler-icon"></span>
-			</button>
-
-			<div class="collapse navbar-collapse" id="mainNavbar">
-				<ul class="navbar-nav mr-5">
-					<li class="nav-item">
-						<a href="#" class="toggle-collapse">
-							<img class="icons nav__cards" height="30" width="30" src="icons/cards.svg" alt="">
-							<img class="icons nav__arrow-back" height="30" width="30" src="icons/arrow-back.svg" alt="">
-						</a>
-					</li>
-				</ul>
-				<form autocomplete="off" class="form-inline navbar-nav my-2 my-lg-0 mr-auto">
-					<img src="icons/lupa.svg" class="nav__search-icon" width="20" height="20" alt="">
-					<input class="form-control autocomplete pl-5 mr-sm-2" type="search" placeholder="Buscá tu barrio" aria-label="Buscá tu barrio">
-				</form>
-				<button class="btn btn-primary">Iniciar sesión</button>
-			</div>
-			
-		</nav> -->
 
 		<!-- Navbar -->
-		<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
+		<nav class="navbar navbar-expand navbar-light bg-white fixed-top">
 
 			<!-- Navbar Logo -->
 			<a class="navbar-brand nav__logo">
@@ -66,18 +40,19 @@
 						</a>
 					</li>
 				</ul>
+				<br class="d-block d-md-none">
 
 				<!-- Navbar Autocomplete -->
 				<form autocomplete="off" class="form-inline navbar-nav my-2 my-lg-0 mr-auto">
 					<img src="icons/lupa.svg" class="nav__search-icon" width="20" height="20" alt="">
 					<input class="form-control autocomplete pl-5 mr-sm-2" type="search" placeholder="Buscá tu barrio" aria-label="Buscá tu barrio">
 				</form>
-				<button class="btn btn-primary">Iniciar sesión</button>
+				<button class="btn btn-primary d-none d-md-inline-block">Iniciar sesión</button>
 			</div>
 			
 		</nav>
 
-		<div class="dashboard container p-5">
+		<div class="dashboard container py-5 px-0 px-lg-3 px-xl-5">
 
 			<!-- Post form -->
 			<div class="post-story mx-3 mb-3 px-4 py-3">
@@ -85,11 +60,11 @@
 				<!-- New post categories -->
 				<form>
 					<div class="form-group row mb-0">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Publicar</label>
-						<div class="col-sm-10">
-							<a href="#noticia" class="btn btn-secondary post-story__button px-4 mr-2">Noticia</a>
-							<a href="#evento" class="btn btn-secondary post-story__button px-4 mx-2">Evento</a>
-							<a href="#reporte" class="btn btn-secondary post-story__button px-4 ml-2">Reporte</a>
+						<label for="exampleInputEmail1" class="col-12 col-xl-2 col-form-label text-center text-xl-left">Publicar</label>
+						<div class="col-12 col-xl-10 text-center text-xl-left">
+							<a href="#noticia" class="btn btn-secondary post-story__button px-4 my-1 mr-2">Noticia</a>
+							<a href="#evento" class="btn btn-secondary post-story__button px-4  my-1 mr-2">Evento</a>
+							<a href="#reporte" class="btn btn-secondary post-story__button px-4 my-1 mr-2">Reporte</a>
 			
 						</div>
 					</div>
@@ -98,7 +73,7 @@
 				<!-- New post form noticia -->
 				<form class="post-story__form post-story__form--noticia d-none">
 					<div class="form-group row my-3 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Enlace</label>
+						<label for="url" class="col-sm-2 col-form-label">Enlace</label>
 						<div class="col-sm-10">
 							<input type="text" class="form-control" id="url" placeholder="Pegá la URL de la noticia que querés compartir">
 						</div>
@@ -117,89 +92,98 @@
 				<!-- New post form evento -->
 				<form class="post-story__form post-story__form--evento text-right d-none">
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Título</label>
+						<label for="titulo-evento" class="col-sm-2 col-form-label">Título</label>
 						<div class="col-sm-10">
-							<input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="text" class="form-control" id="titulo-evento" name="titulo" maxlength="100">
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Imagen</label>
+						<label for="imagen-evento" class="col-sm-2 col-form-label">Imagen <small class="text-muted font-italic">opcional</small></label>
 						<div class="col-sm-10">
-							<input type="file" class="form-control-file" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="file" class="form-control-file" name="imagen" id="imagen-evento">
 						</div>
 					</div>
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Descripción</label>
+						<label for="descripcion-evento" class="col-sm-2 col-form-label">Descripción <small class="text-muted font-italic">opcional</small></label>
 						<div class="col-sm-10">
-							<textarea type="file" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"></textarea>
+							<textarea type="file" class="form-control" id="descripcion-evento" name="descripcion" maxlength="240"></textarea>
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Fecha</label>
+						<label for="fecha-evento" class="col-sm-2 col-form-label">Fecha</label>
 						<div class="col-sm-10">
-							<input type="date" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="date" class="form-control" id="fecha-evento" name="fecha">
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
 					<div class="form-group row my-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Hora</label>
+						<label for="hora-evento" class="col-sm-2 col-form-label">Hora</label>
 						<div class="col-sm-10">
-							<input type="time" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="time" class="form-control" id="hora-evento" name="hora">
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
-					<input type="submit" value="Publicar" class="btn btn-primary">
+					<input type="submit" value="Cancelar" class="post-story__cancel-button btn btn-outline-primary">
+					<input type="submit" value="Ubicar" class="btn btn-primary post-story__submit-button">
 				</form>
 
 				<!-- New post form reporte -->
 				<form class="post-story__form post-story__form--reporte text-right d-none">
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Título</label>
+						<label for="titulo-reporte" class="col-sm-2 col-form-label">Título</label>
 						<div class="col-sm-10">
-							<input type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="text" class="form-control" id="titulo-reporte" name="titulo" maxlength="100">
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Descripción</label>
+						<label for="descripcion-reporte" class="col-sm-2 col-form-label">Descripción <small class="text-muted font-italic">opcional</small></label>
 						<div class="col-sm-10">
-							<textarea type="file" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp"></textarea>
+							<textarea type="file" class="form-control" id="descripcion-reporte" name="descripcion" maxlength="240"></textarea>
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
 					<div class="form-group row mt-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Imagen</label>
+						<label for="imagen-reporte" class="col-sm-2 col-form-label">Imagen <small class="text-muted font-italic">opcional</small></label>
 						<div class="col-sm-10">
-							<input type="file" class="form-control-file" id="exampleInputEmail1" aria-describedby="emailHelp">
+							<input type="file" class="form-control-file" id="imagen-reporte" name="imagen">
 						</div>
 					</div>
 					<div class="form-group row my-3 mb-0 text-left">
-						<label for="exampleInputEmail1" class="col-sm-2 col-form-label">Categoría</label>
+						<label for="tipo-reporte" class="col-sm-2 col-form-label">Tipo de reporte</label>
 						<div class="col-sm-10">
-							<select name="categoria" class="form-control" id="categoria">
+							<select name="categoria" class="form-control" id="tipo-reporte" name="tipo">
 								<option>Servicios: agua</option>
 								<option>Servicios: luz</option>
 								<option>Servicios: gas</option>
 								<option>Problema vial</option>
-								<option>Inseguridad</option>
+								<option>Bache</option>
 							</select>
+							<small class="form-text text-muted text-right"></small>
 						</div>
 					</div>
-					<input type="submit" value="Publicar" class="btn btn-primary">
+					<input type="submit" value="Cancelar" class="post-story__cancel-button btn btn-outline-primary">
+					<input type="submit" value="Ubicar" class="btn btn-primary post-story__submit-button">
 				</form>
 			</div>
 
 			
-			<div class="text-center h-100 d-flex flex-column justify-content-center align-items-center" id="no-neighbour-selected">
-				<span class="h3 text-muted font-weight-light mx-5">Seleccioná tu barrio para ver <br> las historias más cercanas.</span>
-				<div class="mt-3">
-					<a href="#" class="btn btn-primary button__focus-search mr-2">Elegir mi ubicación</a>
-					<a href="#" class="btn btn-secondary button__toggle-dashboard">Navegar en el mapa</a>
+			<div class="text-center my-5 py-5 d-flex flex-column justify-content-center align-items-center" id="no-neighbour-selected">
+				<span class="h3 text-muted font-weight-light mx-5">Seleccioná tu barrio para ver <br class="d-none d-xl-block"> las historias más cercanas.</span>
+				<div class="m-3">
+					<a href="#" class="btn btn-primary button__focus-search m-2">Elegir mi ubicación</a>
+					<a href="#" class="btn btn-secondary button__toggle-dashboard m-2">Navegar en el mapa</a>
 				</div>
 			</div>
 		</div>
 
 		<div class="map loading">
 			<div class="map__nav">
-				<a href="" class="button button--category button--noticias"></a>
-				<a href="" class="button button--category button--reportes"></a>
-				<a href="" class="button button--category button--eventos"></a>
+				<a href="#noticias" class="button button--category button--noticias active"></a>
+				<a href="#reportes" class="button button--category button--reportes active"></a>
+				<a href="#eventos" class="button button--category button--eventos active"></a>
 			</div>
 			<div class="map__select-point d-none">
 				Hacé click en el mapa con la posición deseada

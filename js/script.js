@@ -6,6 +6,14 @@ var App = (function() {
 	var autocompleteCache = {};
 	var polygonNbh;
 
+	var markersFilter = {
+		noticias: true,
+		eventos: true,
+		reportes: true
+	};
+
+	var dashboardExpanded = false;
+
 	// --------DASHBOARD--------
 
 	// Abre o cierra la sección 'Dashboard'
@@ -14,15 +22,30 @@ var App = (function() {
 
 		elems.app.toggleClass('expanded');
 		var navValue = localStorage.getItem('nav') === 'expanded' ? 'collapsed' : 'expanded';
+		dashboardExpanded = navValue === 'expanded';
 		localStorage.setItem('nav', navValue);
+
+		if (navValue === 'expanded' && typeof infoWindow !== 'null') {
+			infoWindow.close();
+		}
 	}
 
 	// Abre la sección 'Dashboard'
 	var dashboardOpen = function(e) {
 		if (e) e.preventDefault();
 
+		dashboardExpanded = true;
 		elems.app.addClass('expanded');
 		localStorage.setItem('nav', 'expanded');
+	}
+
+	// Abre la sección 'Dashboard'
+	var dashboardClose = function(e) {
+		if (e) e.preventDefault();
+		
+		dashboardExpanded = false;
+		elems.app.removeClass('expanded');
+		localStorage.setItem('nav', 'collapsed');
 	}
 
 	// Pide al servidor y carga las historias correspondientes al barrio seleccionado
@@ -57,10 +80,10 @@ var App = (function() {
 					// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
 					card
 						.mouseenter(function() {
-							markers[historia.id].setAnimation(google.maps.Animation.BOUNCE);
+							markers[historia.id].marker.setAnimation(google.maps.Animation.BOUNCE);
 						})
 						.mouseleave(function() {
-							markers[historia.id].setAnimation(null);
+							markers[historia.id].marker.setAnimation(null);
 						});
 				});
 			}
@@ -100,6 +123,9 @@ var App = (function() {
 		if (e) e.preventDefault();
 
 		var href = $(this).attr('href').substr(1);
+		elems.postStoryButtons.removeClass('active');
+		$(this).addClass('active');
+
 		elems.postStoryForms.each(function() {
 			$this = $(this);
 			if ($this.hasClass('post-story__form--'+href)) {
@@ -117,9 +143,13 @@ var App = (function() {
 	var postStoryCancel = function(e) {
 		if (e) e.preventDefault();
 
+		elems.postStoryButtons.removeClass('active');
+
 		elems.postStoryForms
 			.addClass('d-none')
-			.trigger("reset");
+			.trigger("reset")
+			.find('small')
+			.empty();
 	}
 
 	var postNoticiaSubmit = function(e) {
@@ -166,6 +196,96 @@ var App = (function() {
 		});
 	}
 
+	var postEventoSubmit = function(e) {
+		if (e) e.preventDefault();
+			
+		var data = elems.postEvento.serializeArray().reduce(function(red, elem) {
+			red[elem.name] = elem.value;
+			return red;
+		}, {});
+		var $this = $(this);
+
+		if (data.titulo !== '' && data.fecha !== '' && data.hora !== '') {
+			mapSelectPoint($this, function(latLng) {
+				if (latLng) {
+					$this.val('Publicar');
+					// TO DO: PUBLICAR INFORMACIÓN
+				} else {
+					// Elección de punto cancelada
+					$this.val('Ubicar');
+				}
+			});
+		} else {
+			var elementos = elems.postEvento.find('#titulo-evento, #fecha-evento, #hora-evento');
+			
+			elementos.each(function(elem) {
+				var elem = $(this);
+				var inputHelp = elem.siblings('small');
+
+				elem.on('blur', function() {
+					inputHelp.text(elem.val() === '' ? 'Debe completar este campo.' : '');
+				});
+
+				inputHelp.empty();
+				if (elem.val() === '') {
+					inputHelp.text('Debe completar este campo.');
+				}
+			});
+		}
+	}
+
+	var postReporteSubmit = function(e) {
+		if (e) e.preventDefault();
+			
+		var data = elems.postReporte.serializeArray().reduce(function(red, elem) {
+			red[elem.name] = elem.value;
+			return red;
+		}, {});
+
+		var $this = $(this);
+
+		if (data.titulo !== '' && data.tipo !== '') {
+			mapSelectPoint($this, function(latLng) {
+				if (latLng) {
+					$this.val('Publicar');
+					// TO DO: PUBLICAR INFORMACIÓN
+				} else {
+					// Elección de punto cancelada
+					$this.val('Ubicar');
+				}
+			});
+		} else {
+			var elementos = elems.postReporte.find('#titulo-reporte, #tipo-reporte');
+			
+			elementos.each(function(elem) {
+				var elem = $(this);
+				var inputHelp = elem.siblings('small');
+
+				elem.on('blur', function() {
+					inputHelp.text(elem.val() === '' ? 'Debe completar este campo.' : '');
+				});
+
+				inputHelp.empty();
+				if (elem.val() === '') {
+					inputHelp.text('Debe completar este campo.');
+				}
+			});
+		}
+	}
+
+
+	var postRemainingChars = function() {
+		var $this = $(this);
+		var inputLength = $this.val().length;
+		var maxLength = $this.attr('maxlength');
+
+		$this.siblings('small').html(inputLength + '/' + maxLength);
+
+	}
+
+	var postHideRemainingChars = function() {
+		$(this).siblings('small').empty();
+	}
 
 	// --------NAV--------
 
@@ -292,8 +412,7 @@ var App = (function() {
 			callback(e.latLng);
 		});
 
-		$this
-			.siblings('.post-story__cancel-button')
+		elems.postStoryCancelButton
 			.click(function(e) {
 				e.preventDefault();
 
@@ -308,9 +427,37 @@ var App = (function() {
 
 	}
 
+	var mapFilterMarkers = function(e) {
+		if (e) e.preventDefault();
+
+		var $this = $(this);
+		var categoria = $this.attr('href').substr(1);
+
+		if (markersFilter[categoria]) {
+			$this.removeClass('active');
+			markersFilter[categoria] = false;
+		} else {
+			$this.addClass('active');
+			markersFilter[categoria] = true;
+		}
+
+		Object.values(markers).forEach(function(markerObj) {
+
+			if (markersFilter[markerObj.categoria]) {
+				markerObj.marker.setMap(map);
+			} else {
+				markerObj.marker.setMap(null);
+			}
+		});
+	}
 
 
-
+	// ------- WINDOW RESPONSIVE ------
+	var windowResized = function() {
+		 if (dashboardExpanded && $(this).width() < 960) {
+			dashboardClose();
+		 }
+	}
 
 
 
@@ -319,7 +466,9 @@ var App = (function() {
 
 	// Función que selecciona todos los elementos necesarios y los retorna en un objeto
 	var enlazarElems = function () {
-        var self = {};
+		var self = {};
+		
+		self.window = $(window);
 
 		// App
 		self.app = $('.app');
@@ -338,16 +487,24 @@ var App = (function() {
 
 		self.postNoticia = $('.post-story__form--noticia');
 		self.postNoticiaSubmitButton = $('.post-story__form--noticia .post-story__submit-button');
+
+		self.postEvento = $('.post-story__form--evento');
 		self.postEventoSubmitButton = $('.post-story__form--evento .post-story__submit-button');
+
+		self.postReporte = $('.post-story__form--reporte');
 		self.postReporteSubmitButton = $('.post-story__form--reporte .post-story__submit-button');
 
-		// Map
-		self.map = $('.map');
-		self.mapSelectPointPopover = $('.map__select-point');
+		// Inputs
+		self.inputsWithMaxLength = $('input[maxlength], textarea[maxlength]');
 
 		// Buttons (fire actions)
 		self.buttonToggleDashboard = $('.button__toggle-dashboard');
 		self.buttonFocusSearch = $('.button__focus-search');
+		
+		// Map
+		self.map = $('.map');
+		self.mapSelectPointPopover = $('.map__select-point');
+		self.mapFilterButtons = $('.button--category');
 
 		return self;
 
@@ -355,6 +512,8 @@ var App = (function() {
 	
 	// Función que enlaza las funciones con los elementos a través de eventos
 	var enlazarFunciones = function() {
+
+		elems.window.on('resize', windowResized);
 
 		elems.buttonToggleDashboard.on('click', dashboardToggle);
 		elems.buttonFocusSearch.on('click', focusSearchInput);
@@ -367,6 +526,15 @@ var App = (function() {
 		elems.postStoryCancelButton.on('click', postStoryCancel);
 
 		elems.postNoticiaSubmitButton.on('click', postNoticiaSubmit);
+		elems.postEventoSubmitButton.on('click', postEventoSubmit);
+		elems.postReporteSubmitButton.on('click', postReporteSubmit);
+
+		elems.inputsWithMaxLength.on({
+			'focus keydown keyup': postRemainingChars,
+			'blur': postHideRemainingChars
+		});
+
+		elems.mapFilterButtons.on('click', mapFilterMarkers);
 
     };
 
@@ -380,7 +548,7 @@ var App = (function() {
 
 		// Vuelve la sección 'Dashboard' a la última posición deseada por el usuario
 		if (localStorage.getItem('nav') === 'expanded') {
-			dashboardToggle();
+			dashboardOpen();
 		}
 		
 	}

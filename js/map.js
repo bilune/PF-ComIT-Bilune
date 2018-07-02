@@ -171,24 +171,56 @@ function initMap() {
 	});
 
 	window.markers = {};
+	window.infoWindow = null;
+
 	$.getJSON('http://localhost/api/markers.json', {}, function(response, status, xhr) {
 		if (status !== 'error') {
-			response.data.forEach(function(marker) {
-				markers[marker.id] = new google.maps.Marker({
-					position: marker.geometry,
-					map: map,
-					icon: 'http://localhost/xaca/icons/spotlight-poi'+marker.category+'.png'
-				});
 
-				markers[marker.id].addListener('click', function() {
-					$('.dashboard')
+			infoWindow = new google.maps.InfoWindow({
+				content: '<img src="icons/loader.gif" width="30" height="30" class="mx-auto my-5">'
+			});
+
+
+			response.data.forEach(function(marker) {
+				markers[marker.id] = {
+					marker: new google.maps.Marker({
+						position: marker.geometry,
+						map: map,
+						icon: 'http://localhost/xaca/icons/spotlight-poi-'+marker.category+'.png'
+					}),
+					categoria: marker.category
+				}
+
+				markers[marker.id].marker.addListener('click', function() {
+
+					if ($('.app').hasClass('expanded')) { // Está expandido -> se enfoca la historia seleccionada
+						var $card = $('#'+marker.id);
+						var scrollTop = $card.length ? $card.position().top : 0;
+
+						$('.dashboard')
 						.animate({
-							scrollTop: '+=' + $('#'+marker.id).position().top
+							scrollTop: '+=' + scrollTop
 						}, 1000);
+
+					} else { // Está contraído -> se abre una InfoWindow
+
+						infoWindow.open(map, markers[marker.id].marker);
+
+						$.getJSON('http://localhost/api/historia.json', {}, function(response, status) {
+							if (status !== 'error') {
+								infoWindow.setContent(response.data[0].html);
+							}
+						});
+					}
+
 				});
 			});
 		}
 	});
+
+	google.maps.event.addListener(map, 'click', function() {
+		infoWindow.close();
+	})
 
 	new google.maps.Marker
 }

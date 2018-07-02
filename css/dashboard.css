@@ -63,6 +63,20 @@ body {
 	padding-top: 54px;
 }
 
+.map .card {
+	max-width: 100vw;
+	width: 400px;
+	border: none !important;
+}
+
+.map .card-body {
+	padding: .5rem .3rem;
+}
+
+.map .card-title {
+	font-size: 1rem;
+}
+
 .app.expanded .map {
 	width: 50vw;
 }
@@ -160,6 +174,10 @@ body {
 
 .button:hover {
 	color: #fff;
+}
+
+.button.active {
+	color: #fff;
 	text-decoration: none;
 	position: relative;
 	width: 150px;
@@ -188,7 +206,7 @@ body {
 	content: 'N';
 }
 
-.button--noticias:hover::after {
+.button--noticias.active::after {
 	animation-name: show-text-noticias;
 	animation-duration: .3s;
 	content: 'Noticias';
@@ -207,7 +225,7 @@ body {
 	content: 'R';
 }
 
-.button--reportes:hover::after {
+.button--reportes.active::after {
 	animation-name: show-text-reportes;
 	animation-duration: .3s;
 	content: 'Reportes';
@@ -227,7 +245,7 @@ body {
 	content: 'E';
 }
 
-.button--eventos:hover::after {
+.button--eventos.active::after {
 	animation-name: show-text-eventos;
 	animation-duration: .3s;
 	content: 'Eventos';
