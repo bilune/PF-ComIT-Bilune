@@ -121,21 +121,18 @@ var App = (function() {
 	// Muestra u oculta los formularios para publicar una nueva historia
 	var postStoryToggleForm = function(e) {
 		if (e) e.preventDefault();
+		$button = $(this);
 
-		var href = $(this).attr('href').substr(1);
+		var href = $button.attr('href').substr(1);
 		elems.postStoryButtons.removeClass('active');
-		$(this).addClass('active');
 
 		elems.postStoryForms.each(function() {
-			$this = $(this);
-			if ($this.hasClass('post-story__form--'+href)) {
-				if ($this.hasClass('d-none')) {
-					$this.removeClass('d-none');
-				} else {
-					$this.addClass('d-none');
-				}
+			$form = $(this);
+			if ($form.hasClass('post-story__form--'+href) && $form.hasClass('d-none')) {
+				$form.removeClass('d-none');
+				$button.addClass('active');
 			} else {
-				$this.addClass('d-none');
+				$form.addClass('d-none');
 			}
 		});
 	}
@@ -148,7 +145,7 @@ var App = (function() {
 		elems.postStoryForms
 			.addClass('d-none')
 			.trigger("reset")
-			.find('small')
+			.find('small.form-text')
 			.empty();
 	}
 
@@ -177,7 +174,7 @@ var App = (function() {
 						.prop('disabled', true);
 					preview.html(result.html);
 
-					mapSelectPoint($this, function(latLng) {
+					mapSelectPoint(elems.postNoticia, function(latLng) {
 						if (latLng) {
 							// TO DO: PUBLICAR INFORMACIÓN
 						} else {
@@ -206,7 +203,7 @@ var App = (function() {
 		var $this = $(this);
 
 		if (data.titulo !== '' && data.fecha !== '' && data.hora !== '') {
-			mapSelectPoint($this, function(latLng) {
+			mapSelectPoint(elems.postEvento, function(latLng) {
 				if (latLng) {
 					$this.val('Publicar');
 					// TO DO: PUBLICAR INFORMACIÓN
@@ -217,20 +214,8 @@ var App = (function() {
 			});
 		} else {
 			var elementos = elems.postEvento.find('#titulo-evento, #fecha-evento, #hora-evento');
-			
-			elementos.each(function(elem) {
-				var elem = $(this);
-				var inputHelp = elem.siblings('small');
+			postShowInputErrors(elementos);
 
-				elem.on('blur', function() {
-					inputHelp.text(elem.val() === '' ? 'Debe completar este campo.' : '');
-				});
-
-				inputHelp.empty();
-				if (elem.val() === '') {
-					inputHelp.text('Debe completar este campo.');
-				}
-			});
 		}
 	}
 
@@ -245,7 +230,7 @@ var App = (function() {
 		var $this = $(this);
 
 		if (data.titulo !== '' && data.tipo !== '') {
-			mapSelectPoint($this, function(latLng) {
+			mapSelectPoint(elems.postReporte, function(latLng) {
 				if (latLng) {
 					$this.val('Publicar');
 					// TO DO: PUBLICAR INFORMACIÓN
@@ -256,23 +241,35 @@ var App = (function() {
 			});
 		} else {
 			var elementos = elems.postReporte.find('#titulo-reporte, #tipo-reporte');
-			
-			elementos.each(function(elem) {
-				var elem = $(this);
-				var inputHelp = elem.siblings('small');
-
-				elem.on('blur', function() {
-					inputHelp.text(elem.val() === '' ? 'Debe completar este campo.' : '');
-				});
-
-				inputHelp.empty();
-				if (elem.val() === '') {
-					inputHelp.text('Debe completar este campo.');
-				}
-			});
+			postShowInputErrors(elementos);
 		}
 	}
 
+	// Muestra un mensaje de error en todos los campos que sean inválidos
+	var postShowInputErrors = function(elementos) {
+		elementos.each(function(elem) {
+			var elem = $(this);
+			var inputHelp = elem.siblings('small');
+
+			elem.on('blur', function() {
+				if (elem.val() === '') {
+					elem.addClass('is-invalid');
+					inputHelp.html('<span class="text-danger">Debe completar este campo.</span>');
+				} else {
+					elem.removeClass('is-invalid');
+					inputHelp.empty();
+
+				}
+			});
+
+			inputHelp.empty();
+			if (elem.val() === '') {
+				elem.addClass('is-invalid');
+				inputHelp.html('<span class="text-danger">Debe completar este campo.</span>');
+			}
+		});
+
+	} 
 
 	var postRemainingChars = function() {
 		var $this = $(this);
@@ -285,6 +282,47 @@ var App = (function() {
 
 	var postHideRemainingChars = function() {
 		$(this).siblings('small').empty();
+	}
+
+	// Consulta los barrios más cercanos al punto y da la posibilidad al usuario de elegir en cuáles mostrar la historia
+	var postSelectBarrios = function(form) {
+		$.getJSON('http://localhost/api/barrios-cercanos.json', {}, function(response, status) {
+			if (status !== 'error') {
+				var barrios = form.find('.post-story__form--barrios');
+				barrios.empty().parent().removeClass('d-none');
+
+				response.data.forEach(function(barrio) {
+					barrios.append(
+						$('<label></label>')
+							.addClass('btn mx-1' + (barrio.contiene ? ' btn-secondary' : ' btn-outline-secondary'))
+							.append(
+								$('<input type="checkbox">')
+									.addClass('d-none')
+									.attr('name', barrio.id)
+									.val(barrio.id)
+									.prop({
+										'checked': barrio.contiene,
+										'disabled': barrio.contiene
+									})
+									.change(function(e) {
+										var $this = $(this);
+
+										if ($this.prop('checked')) {
+											$this.parent().addClass('btn-secondary').removeClass('btn-outline-secondary');
+										} else {
+											$this.parent().removeClass('btn-secondary').addClass('btn-outline-secondary');
+										}
+									})
+
+							).append(barrio.nombre)
+					);
+				});
+				
+			} else {
+				// TO DO: Completar error al obtener barrios
+			}
+		});
+
 	}
 
 	// --------NAV--------
@@ -393,7 +431,7 @@ var App = (function() {
 	}
 
 	// Permite insertar un punto en el mapa y devuelve el valor del punto si la publicación no es cancelada
-	var mapSelectPoint = function($this, callback) {
+	var mapSelectPoint = function(form, callback) {
 
 		elems.mapSelectPointPopover.removeClass('d-none');
 
@@ -407,7 +445,9 @@ var App = (function() {
 				position: e.latLng,
 				map: map
 			});
-			$this.prop('disabled', false);
+			form.find('.post-story__submit-button').prop('disabled', false);
+
+			postSelectBarrios(form);
 			
 			callback(e.latLng);
 		});
@@ -421,6 +461,7 @@ var App = (function() {
 					marker.setMap(null);
 				}
 				elems.mapSelectPointPopover.addClass('d-none');
+				form.find('.post-story__form--barrios').empty().parent().addClass('d-none');
 
 				callback(false);
 			});
@@ -486,6 +527,7 @@ var App = (function() {
 		self.postStoryCancelButton = $('.post-story__cancel-button');
 
 		self.postNoticia = $('.post-story__form--noticia');
+		self.postNoticiaBarrios = $('.post-story__form--noticia .post-story__form--barrios');
 		self.postNoticiaSubmitButton = $('.post-story__form--noticia .post-story__submit-button');
 
 		self.postEvento = $('.post-story__form--evento');
@@ -513,7 +555,7 @@ var App = (function() {
 	// Función que enlaza las funciones con los elementos a través de eventos
 	var enlazarFunciones = function() {
 
-		elems.window.on('resize', windowResized);
+		// elems.window.on('resize', windowResized);
 
 		elems.buttonToggleDashboard.on('click', dashboardToggle);
 		elems.buttonFocusSearch.on('click', focusSearchInput);
