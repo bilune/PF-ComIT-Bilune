@@ -18,7 +18,7 @@ body {
 }
 
 .dashboard {
-	background: rgba(0,0,0,0.025);
+	background: #f9f9f9;
 	width: 0px;
 	width: 50vw;
 	position: absolute;

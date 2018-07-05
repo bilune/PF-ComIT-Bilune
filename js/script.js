@@ -493,24 +493,13 @@ var App = (function() {
 	}
 
 
-	// ------- WINDOW RESPONSIVE ------
-	var windowResized = function() {
-		 if (dashboardExpanded && $(this).width() < 960) {
-			dashboardClose();
-		 }
-	}
-
-
-
-
-
+	
+	// --------GENERAL--------
 
 	// Función que selecciona todos los elementos necesarios y los retorna en un objeto
 	var enlazarElems = function () {
 		var self = {};
 		
-		self.window = $(window);
-
 		// App
 		self.app = $('.app');
 
@@ -554,8 +543,6 @@ var App = (function() {
 	
 	// Función que enlaza las funciones con los elementos a través de eventos
 	var enlazarFunciones = function() {
-
-		// elems.window.on('resize', windowResized);
 
 		elems.buttonToggleDashboard.on('click', dashboardToggle);
 		elems.buttonFocusSearch.on('click', focusSearchInput);
