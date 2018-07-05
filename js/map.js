@@ -5,6 +5,7 @@ function initMap() {
 	  center: new google.maps.LatLng(-38.7184, -62.2664),
 	  clickableIcons: false,
 	  gestureHandling: 'greedy',
+	  disableDefaultUI: true,
 	//   maxZoom: 16,
 	  minZoom: 12,
 	  streetViewControl: false,
