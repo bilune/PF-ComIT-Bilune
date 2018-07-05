@@ -4,6 +4,7 @@ function initMap() {
 	  zoom: 13,
 	  center: new google.maps.LatLng(-38.7184, -62.2664),
 	  clickableIcons: false,
+	  gestureHandling: 'greedy',
 	//   maxZoom: 16,
 	  minZoom: 12,
 	  streetViewControl: false,
