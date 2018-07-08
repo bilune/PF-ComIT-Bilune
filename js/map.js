@@ -223,6 +223,4 @@ function initMap() {
 	google.maps.event.addListener(map, 'click', function() {
 		infoWindow.close();
 	})
-
-	new google.maps.Marker
 }

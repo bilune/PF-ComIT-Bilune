@@ -47,22 +47,25 @@
 					<img src="icons/lupa.svg" class="nav__search-icon" width="20" height="20" alt="">
 					<input class="form-control autocomplete pl-5 mr-sm-2" type="search" placeholder="Buscá tu barrio" aria-label="Buscá tu barrio">
 				</form>
-				<button class="btn btn-primary ml-auto">Iniciar sesión</button>
+				<button class="btn btn-primary ml-auto">
+					<span class="d-none d-sm-inline">Iniciar sesión</span>
+					<span class="d-inline d-sm-none">Entrar</span>
+				</button>
 			</div>
 			
 		</nav>
 
 
-		<div class="dashboard py-5 px-2 px-sm-5">
+		<div class="dashboard py-5 px-0 px-sm-5">
 
 			<!-- Post form -->
-			<div class="post-story my-3 p-4 px-md-5 px-lg-4 px-xl-5 mt-lg-0 ">
+			<div class="post-story mx-0 mx-md-5 mx-lg-2 mx-xl-3 mb-3 p-4 px-md-5 px-lg-4 px-xl-5 mt-sm-4 mt-md-0">
 
 				<!-- New post categories -->
 				<form>
 					<div class="form-group row mb-0">
-						<label class="col-12 col-form-label text-center">
-							<span class="text-muted">¿Qué está pasando cerca tuyo?</span>
+						<label class="col-12 col-form-label text-center px-0">
+							<span class="h4 text-muted font-weight-light mx-0 mx-md-5 mx-lg-0 mx-xl-5">¿Qué está pasando cerca tuyo?</span>
 						</label>
 						<div class="col-12 text-center p-0 p-sm-auto">
 							<a href="#noticia" class="btn btn-secondary post-story__button px-3 px-sm-4 my-1 mr-1 mr-sm-2">Noticia</a>
@@ -87,7 +90,7 @@
 					</div>
 
 					<div class="form-group col-12 row mt-5 mb-3 d-none">
-						<div class="col-12 text-center mb-2">Elegir barrio/s donde mostrar la noticia</div>
+						<div class="col-12 text-center mb-2">Elegí en qué barrio/s querés que se muestre esta historia</div>
 						<div class="col-12 text-center post-story__form--barrios"></div>
 					</div>
 
@@ -207,14 +210,29 @@
 				</form>
 			</div>
 
-			
-			<div class="text-center mt-5 pt-5 d-flex flex-column justify-content-center align-items-center" id="no-neighbour-selected">
-				<span class="h3 text-muted font-weight-light mx-5">Seleccioná tu barrio para ver <br class="d-none d-xl-block"> las historias más cercanas.</span>
+			<div class="text-center mt-5 pt-5 d-flex flex-column justify-content-center align-items-center dashboard__no-barrio">
+				<img class="mx-auto d-block" src="icons/favorite.svg" width="60" height="60" alt="No stories found emoji">
+				<span class="h4 text-muted font-weight-light mx-5 mt-3">Seleccioná tu barrio para ver <br class="d-none d-xl-block"> las historias más cercanas.</span>
 				<div class="m-3">
 					<a href="#" class="btn btn-primary button__focus-search m-2">Elegir mi ubicación</a>
 					<a href="#" class="btn btn-secondary button__toggle-dashboard m-2">Navegar en el mapa</a>
 				</div>
 			</div>
+
+			<div class="text-center mt-5 pt-5 d-none flex-column justify-content-center align-items-center dashboard__no-stories">
+				<img class="mx-auto d-block" src="icons/rich.svg" width="60" height="60" alt="No stories found emoji">
+				<span class="h4 text-muted font-weight-light mx-5 mt-3">No encontramos historias en tu barrio. <br class="d-none d-xl-block"> ¡Sé el primero en publicar!</span>
+				<div class="m-3">
+					<a href="#" class="btn btn-primary button__focus-search m-2">Elegir otra ubicación</a>
+				</div>
+			</div>
+
+			<div class="dashboard__ubicacion mt-4 mb-3 mx-3 d-none">
+				Estás viendo historias cercanas a <strong></strong>
+			</div>
+			<div class="dashboard__stories"></div>
+			<img class="loader mt-5 mx-auto d-none dashboard__loader" src="icons/loader.gif" style="height:  30px;width:  30px;">
+
 		</div>
 
 		<div class="map loading">
@@ -225,6 +243,7 @@
 			</div>
 			<div class="map__select-point d-none">
 				Hacé click en el mapa con la posición deseada
+				<a class="btn btn-primary mt-2 map__select-point__volver d-inline-block d-lg-none">Elegir ubicación</a>
 			</div>
 			<div id="map"></div>
 		</div>
@@ -235,10 +254,12 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
-	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8oXiSBU_IwCglfAkh8b-FnnesQ7qxoyY&callback=initMap"></script>
 	<script src="js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/locale/es.js"></script>
 	<script src="js/script.js"></script>
-	<script src="js/map.js"></script>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8oXiSBU_IwCglfAkh8b-FnnesQ7qxoyY&callback=initMap"></script>
+
 </body>
 
 </html>

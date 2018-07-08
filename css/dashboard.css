@@ -76,8 +76,16 @@ body {
 	border: none !important;
 }
 
+.map .card:hover {
+	background-color: #fff;
+}
+
 .map .card-body {
 	padding: .5rem .3rem;
+}
+
+.map .card__reporte .card__img {
+	height: 180px !important;
 }
 
 .map .card-title {
@@ -392,6 +400,17 @@ body {
 		left: auto;
 	}
 
+	.map__select-point {
+		bottom: 0;
+		left: 0;
+		right: 0;
+		transform: none;
+	}
+
+	.map__select-point a {
+		color: #fff !important;
+	}
+
 
 	
 }
@@ -437,6 +456,15 @@ body {
 
 	.autocomplete {
 		width: 100%!important;
+	}
+
+	.card__img {
+		width: 100% !important;
+		min-height: 40vw !important;
+	}
+
+	.card__reporte .card__img {
+		height: 150px;
 	}
 	
 }

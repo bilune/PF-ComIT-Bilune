@@ -6,11 +6,22 @@ var App = (function() {
 	var autocompleteCache = {};
 	var polygonNbh;
 
+	var map = null;
+	var markers = {};
+	var infoWindow = null;
+
 	var markersFilter = {
 		noticias: true,
 		eventos: true,
 		reportes: true
 	};
+
+	var mapBounds = null;
+
+	var selectedBarrioID = 0;
+	var lastStoryDateTime = null;
+
+	var loadingMoreStories = false;
 
 	var dashboardExpanded = false;
 
@@ -49,45 +60,137 @@ var App = (function() {
 	}
 
 	// Pide al servidor y carga las historias correspondientes al barrio seleccionado
-	var dashboardLoadStories = function(id, name) {
+	var dashboardLoadStories = function(id, callback) {
 
-		// Elimina el mensaje que se muestra cuando no hay barrio seleccionado
+		// Elimina el mensaje que se muestra cuando no hay barrio seleccionado o no hay historias en el barrio elegido
 		elems.noNeighborhood.removeClass('d-flex').addClass('d-none');
+		elems.noStories.removeClass('d-flex').addClass('d-none');
 
 		var dashboard = elems.dashboard;
 		dashboard.addClass('loading');
 
-		$.getJSON('http://localhost/api/historias.json', {}, function(result, status) {
+		$.getJSON('server/api/historia.php', {
+			query: 'historias',
+			barrio: id
+		}, function(result, status) {
 			if (status === 'error') {
 				// TO DO: Handle error
 			} else {
 
-				dashboard.append(
-					$('<div></div>')
-						.addClass('mt-4 mb-3 mx-3')
-						.html('Estás viendo historias de <strong>'+name+'</strong>')
-				);
+				dashboard.removeClass('loading');
+				elems.stories.empty();
+				mapBounds = new google.maps.LatLngBounds();
 
 				result.data.forEach(function(historia) {
-					var card = dashboard
-						.removeClass('loading')
+
+					mapBounds.extend({
+						lat: historia.geometry.lat,
+						lng: historia.geometry.lng
+					});
+
+					lastStoryDateTime = historia.fecha_creacion;
+
+					var card = elems.stories
 						.append(historia.html)
-						.find('.card:last');
+						.find('.card:last')
+						.addClass('mx-3 mx-md-5 mx-lg-2 mx-xl-3')
+
+						// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
+						.on('mouseenter mouseleave', function(e) {
+							var animation = e.type === 'mouseenter' ? google.maps.Animation.BOUNCE : null;
+							var id = $(this).attr('id');
+
+							if (typeof markers[id] !== 'undefined') {
+								markers[id].marker.setAnimation(animation);
+							}
+						})
+
+						.find('.card__timeago')
+						.text(moment.unix(historia.fecha_creacion).fromNow());
 
 					// Acorta los textos de las historias y agrega un botón para ver más
 					shortenDescriptions(card);
 
-					// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
-					card
-						.mouseenter(function() {
-							markers[historia.id].marker.setAnimation(google.maps.Animation.BOUNCE);
-						})
-						.mouseleave(function() {
-							markers[historia.id].marker.setAnimation(null);
-						});
 				});
+
+				callback(result.data.length === 0);
+				mapSetMarkers(result.data);
 			}
 		});
+	}
+
+	var dashboardLoadMoreStories = function(callback) {
+
+		$.getJSON('server/api/historia.php', {
+			query: 'historias',
+			barrio: selectedBarrioID,
+			antes_de: lastStoryDateTime
+		}, function(result, status) {
+			if (status !== 'error') {
+
+				callback(result.data.length === 0);
+
+				result.data.forEach(function(historia) {
+
+					mapBounds.extend({
+						lat: historia.geometry.lat,
+						lng: historia.geometry.lng
+					});
+
+					lastStoryDateTime = historia.fecha_creacion;
+
+					var card = elems.stories
+						.append(historia.html)
+						.find('.card:last')
+						.addClass('mx-3 mx-md-5 mx-lg-2 mx-xl-3')
+
+						// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
+						.on('mouseenter mouseleave', function(e) {
+							var animation = e.type === 'mouseenter' ? google.maps.Animation.BOUNCE : null;
+							var id = $(this).attr('id');
+
+							if (typeof markers[id] !== 'undefined') {
+								markers[id].marker.setAnimation(animation);
+							}
+						})
+
+						.find('.card__timeago')
+						.text(moment.unix(historia.fecha_creacion).fromNow());
+
+					// Acorta los textos de las historias y agrega un botón para ver más
+					shortenDescriptions(card);
+
+				});
+				
+				mapSetMarkers(result.data);
+
+				// Enfoca el mapa
+				map.fitBounds(mapBounds);
+				
+			} else {
+				// TO DO: error handling
+			}
+
+		});
+	}
+
+	var dashboardScrollBottom = function() {
+		var dashboard = elems.dashboard;
+
+		if (!loadingMoreStories && dashboard.scrollTop() + dashboard.outerHeight() === dashboard.prop('scrollHeight')) {
+			elems.dashboardLoader.removeClass('d-none').addClass('d-block');
+			loadingMoreStories = true;
+
+			dashboardLoadMoreStories(function(noMoreStories) {
+
+				if (noMoreStories) {
+					dashboard.unbind('scroll');
+				}
+
+				loadingMoreStories = false;
+				elems.dashboardLoader.addClass('d-none').removeClass('d-block');
+			});
+		}
 	}
 
 	// Acorta los textos de las historias y agrega un botón para ver más
@@ -164,7 +267,10 @@ var App = (function() {
 			.addClass('d-block');
 		preview.empty();
 
-		$.getJSON('http://localhost/project/objetos.php', { url: url }, function(result, status) {
+		$.getJSON('server/api/historia.php', {
+			query: 'previsualizar',
+			url: url
+		}, function(result, status) {
 			if (status === 'error') {
 				preview.text('Algo falló.');
 			} else {
@@ -285,8 +391,12 @@ var App = (function() {
 	}
 
 	// Consulta los barrios más cercanos al punto y da la posibilidad al usuario de elegir en cuáles mostrar la historia
-	var postSelectBarrios = function(form) {
-		$.getJSON('http://localhost/api/barrios-cercanos.json', {}, function(response, status) {
+	var postSelectBarrios = function(form, lat, lng) {
+		$.getJSON('server/api/barrio.php', {
+			query: 'cercanos',
+			lat: lat,
+			lng: lng
+		}, function(response, status) {
 			if (status !== 'error') {
 				var barrios = form.find('.post-story__form--barrios');
 				barrios.empty().parent().removeClass('d-none');
@@ -347,16 +457,28 @@ var App = (function() {
 					response( autocompleteCache[ term ] );
 					return;
 				}
-				$.getJSON( "http://localhost/api/barrios.json", request, function( data, status, xhr ) {
+				$.getJSON( "server/api/barrio.php", {
+					query: 'buscar',
+					term: term
+				}, function( data, status ) {
 					autocompleteCache[ term ] = data.data;
 					response( data.data );
 				});
-			}
+			},
+			close: function() {
+				console.log('closed');
+				$this = $(this);
+				setTimeout(function(){
+					$this.blur();
+				});
+			},
+			select: autocompleteSelect
 		});
 	}
 
 	// Abre el autocomplete cuando se hace click en el input
-	var autocompleteOpen = function() {
+	var autocompleteOpen = function(e) {
+		console.log(e);
 		var value = elems.navbarSearchInput.val();
 		elems.navbarSearchInput.autocomplete('search', value);
 	}
@@ -367,18 +489,38 @@ var App = (function() {
 		e.preventDefault();
 
 		elems.navbarSearchInput
-			.val('')
-			.blur();
-		
+			// .autocomplete('close')
+			.val('');
+	
 		dashboardOpen();
 
-		$.getJSON('http://localhost/api/barrio-bounds.json', { id: ui.item.id }, function(result, status) {
+		$.getJSON('server/api/barrio.php', {
+			query: 'limites',
+			id: ui.item.id
+		}, function(result, status) {
 			if (status === 'error') {
 				// TO DO: Handle error
 			} else {
 
-				mapFitBounds(result.data.boundingBox, result.data.bounds);
-				dashboardLoadStories(ui.item.id, ui.item.value);
+				selectedBarrioID = ui.item.id;
+				dashboardLoadStories(ui.item.id, function(noStories) {
+					mapFitBounds(result.data.boundingBox, result.data.bounds);
+
+					if (noStories) {
+						elems.noStories.removeClass('d-none').addClass('d-flex');
+						elems.ubicacionActual
+							.addClass('d-none')
+							.children('strong')
+							.empty();
+					} else {
+						elems.ubicacionActual
+							.removeClass('d-none')
+							.children('strong')
+							.text(ui.item.value);
+					}
+				});
+				
+				elems.dashboard.on('scroll', dashboardScrollBottom);
 
 			}
 		});
@@ -387,19 +529,88 @@ var App = (function() {
 
 	// --------MAP--------
 
+	var mapLoadMarkers = function() {
+		$.getJSON('server/api/historia.php', {
+			query: 'markers'
+		}, function(response, status) {
+			if (status !== 'error') {
+
+				infoWindow = new google.maps.InfoWindow({
+					content: '<img src="icons/loader.gif" width="30" height="30" class="mx-auto my-5">'
+				});
+
+				mapSetMarkers(response.data);
+
+			}
+		});
+	}
+
+	// Ubica los marcadores en el mapa
+	// arrayOfMarkers : { 'id': String , 'geometry': Object( 'lat': Number, 'lng': Number ), 'category': String }
+	var mapSetMarkers = function(arrayOfMarkers) {
+
+		arrayOfMarkers.forEach(function(marker) {
+
+			var markerID = 'id' + marker.id;
+
+			if (markerID in markers) {
+				return false;
+			}
+
+			markers[markerID] = {
+				marker: new google.maps.Marker({
+					position: marker.geometry,
+					map: map,
+					icon: 'icons/spotlight-poi-'+marker.category+'.png'
+				}),
+				categoria: marker.category
+			}
+
+			markers[markerID].marker.addListener('click', function() {
+
+				if ($('.app').hasClass('expanded')) { // Está expandido -> se enfoca la historia seleccionada
+
+					var $card = $('#'+markerID);
+
+					var scrollTop = $card.length ? $card.position().top : 0;
+					
+					$('.dashboard')
+					.animate({
+						scrollTop: '+=' + scrollTop
+					}, 1000);
+
+				} else { // Está contraído -> se abre una InfoWindow
+
+					infoWindow.open(map, markers[markerID].marker);
+
+					$.getJSON('server/api/historia.php', {
+						query: 'historia',
+						id: marker.id
+					}, function(response, status) {
+						if (status !== 'error') {
+							infoWindow.setContent(response.data.html);
+						}
+					});
+				}
+
+			});
+		});
+
+	}
+
 	// Enfoca y agrega los límites del barrio seleccionado en el mapa
 	var mapFitBounds = function(boundingBox, nbhBounds) {
 
-		var bounds = new google.maps.LatLngBounds();
+		// var bounds = new google.maps.LatLngBounds();
 		boundingBox.forEach(function(val) {
-			bounds.extend({
+			mapBounds.extend({
 				lat: val[1],
 				lng: val[0]
 			});
 		});
 
 		// Enfoca el mapa
-		map.fitBounds(bounds); 
+		map.fitBounds(mapBounds); 
 
 		// Elimina el polígono anterior
 		if (polygonNbh) polygonNbh.setMap(null); 
@@ -408,13 +619,13 @@ var App = (function() {
 		polygonNbh = new google.maps.Polyline({
 			clickeable: false,
 			strokeColor: '#000',
-			strokeOpacity: '0.1',
+			strokeOpacity: '0.3',
 			strokeWeight: 0.5,
 			map: map,
 			icons: [{
 				icon: {
 					path: 'M 0,-1 0,1',
-					fillOpacity: 0.2,
+					fillOpacity: 0.5,
 					scale: 3
 				},
 				offset: 0,
@@ -434,6 +645,7 @@ var App = (function() {
 	var mapSelectPoint = function(form, callback) {
 
 		elems.mapSelectPointPopover.removeClass('d-none');
+		if ($(window).width() < 992) dashboardClose();
 
 		var marker;
 
@@ -447,8 +659,10 @@ var App = (function() {
 			});
 			form.find('.post-story__submit-button').prop('disabled', false);
 
-			postSelectBarrios(form);
+			postSelectBarrios(form, e.latLng.lat, e.latLng.lng);
 			
+			if ($(window).width() < 992) dashboardOpen();
+
 			callback(e.latLng);
 		});
 
@@ -509,7 +723,8 @@ var App = (function() {
 
 		// Dashboard
 		self.dashboard = $('.dashboard');
-		self.noNeighborhood = $('#no-neighbour-selected');
+		self.noNeighborhood = $('.dashboard__no-barrio');
+		self.noStories = $('.dashboard__no-stories');
 
 		self.postStoryButtons = $('.post-story__button');
 		self.postStoryForms = $('.post-story__form');
@@ -524,6 +739,10 @@ var App = (function() {
 
 		self.postReporte = $('.post-story__form--reporte');
 		self.postReporteSubmitButton = $('.post-story__form--reporte .post-story__submit-button');
+
+		self.ubicacionActual = $('.dashboard__ubicacion');
+		self.stories = $('.dashboard__stories');
+		self.dashboardLoader = $('.dashboard__loader');
 
 		// Inputs
 		self.inputsWithMaxLength = $('input[maxlength], textarea[maxlength]');
@@ -546,10 +765,7 @@ var App = (function() {
 
 		elems.buttonToggleDashboard.on('click', dashboardToggle);
 		elems.buttonFocusSearch.on('click', focusSearchInput);
-		elems.navbarSearchInput.on({
-			'focus': autocompleteOpen,
-			'autocompleteselect': autocompleteSelect
-		});
+		elems.navbarSearchInput.on('focus', autocompleteOpen);
 
 		elems.postStoryButtons.on('click', postStoryToggleForm);
 		elems.postStoryCancelButton.on('click', postStoryCancel);
@@ -567,7 +783,7 @@ var App = (function() {
 
     };
 
-	var init = function() {
+	var initApp = function() {
 
 		// Asigna a elem los elementos
 		elems = enlazarElems();
@@ -582,11 +798,197 @@ var App = (function() {
 		
 	}
 
+	var initMap = function() {
+		map = new google.maps.Map(document.getElementById('map'), {
+			zoom: 13,
+			center: new google.maps.LatLng(-38.7184, -62.2664),
+			clickableIcons: false,
+			gestureHandling: 'greedy',
+			disableDefaultUI: true,
+			minZoom: 12,
+			maxZoom: 17,
+			streetViewControl: false,
+			mapTypeControl: false,
+			styles: [
+			  {
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#f5f5f5"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.icon",
+				"stylers": [
+				  {
+					"visibility": "off"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#616161"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.text.stroke",
+				"stylers": [
+				  {
+					"color": "#f5f5f5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "administrative.land_parcel",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#bdbdbd"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#eeeeee"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#757575"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi.park",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#e5e5e5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi.park",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#ffffff"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.arterial",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#757575"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.highway",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#dadada"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.highway",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#616161"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.local",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  },
+			  {
+				"featureType": "transit.line",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#e5e5e5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "transit.station",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#eeeeee"
+				  }
+				]
+			  },
+			  {
+				"featureType": "water",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#c9c9c9"
+				  }
+				]
+			  },
+			  {
+				"featureType": "water",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  }
+			]
+		});
+
+		mapLoadMarkers();
+
+		google.maps.event.addListener(map, 'click', function() {
+			infoWindow.close();
+		})
+	
+	}
+
 	return {
-		init: init
+		initApp: initApp,
+		initMap: initMap
 	};
 
 
 })();
 
-$(document).ready(App.init);
+$(document).ready(App.initApp);
+
+function initMap() {
+	App.initMap();
+}
