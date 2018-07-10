@@ -975,7 +975,7 @@ var App = (function() {
 
 		google.maps.event.addListener(map, 'click', function() {
 			infoWindow.close();
-		})
+		});
 	
 	}
 

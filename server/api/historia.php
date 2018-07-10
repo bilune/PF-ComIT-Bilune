@@ -22,17 +22,25 @@ if (isset($_GET['query'])) {
 			mostrarResultado($data);
 			break;
 
-		// QUERY: historias / Parámetros obligatorios: barrio / Parámetros opcionales: antes_de
+		// QUERY: historias / Parámetros obligatorios: barrio || usuario / Parámetros opcionales: antes_de
 		case 'historias':
+
+			$antes_de = isset($_GET['antes_de']) ? $_GET['antes_de'] : '';
+
 			if (isset($_GET['barrio'])) {
+
 				$barrio = $_GET['barrio'];
+				$data = obtenerHistoriasPorBarrio($mysqli, $barrio, $antes_de);
+
+			} else if (isset($_GET['usuario'])) {
+
+				$usuario = $_GET['usuario'];
+				$data = obtenerHistoriasPorUsuario($mysqli, $usuario, $antes_de);
+
 			} else {
 				mostrarError('Falta un parámetro obligatorio.');
 			}
 
-			$antes_de = isset($_GET['antes_de']) ? $_GET['antes_de'] : '';
-
-			$data = obtenerHistoriasPorBarrio($mysqli, $barrio, $antes_de);
 			mostrarResultado($data);
 			break;
 
@@ -70,6 +78,7 @@ if (isset($_GET['query'])) {
 }
 
 function mostrarError($msg = '') {
+	http_response_code(400);
 	die(json_encode(array(
 		'success' => false,
 		'msg' => $msg
@@ -77,6 +86,7 @@ function mostrarError($msg = '') {
 }
 
 function mostrarResultado($data = array()) {
+	http_response_code(200);
 	echo json_encode(array(
 		'success' => true,
 		'data' => $data
@@ -140,6 +150,72 @@ function obtenerHistoriasPorBarrio($mysqli, $barrio, $antes_de) {
 
 	}
 	$sql .= " ORDER BY historia.fecha_creacion DESC LIMIT 0, 1";
+
+	if ($resultado = $mysqli->query($sql)) {
+		while ($fila = $resultado->fetch_assoc()) {
+
+			$fecha_creacion = new DateTime($fila['fecha_creacion']);
+
+			array_push($data, array(
+				'id' => $fila['historia_id'],
+				'html' => toHTML($fila),
+				'fecha_creacion' => $fecha_creacion->getTimestamp(),
+				'geometry' => array(
+					'lat' => floatval($fila['lat']),
+					'lng' => floatval($fila['lng'])
+				),
+				'category' => $fila['tipo_historia']
+			));
+		}
+	} else {
+		mostrarError('Hubo un error al efectuar la consulta.');
+	}
+	return $data;
+
+}
+
+function obtenerHistoriasPorUsuario($mysqli, $usuario, $antes_de) {
+
+	$data = array();
+	$sql = "SELECT
+				historia.historia_id,
+				usuario.nombre AS autor,
+				historia.titulo,
+				historia.imagen,
+				X(historia.ubicacion) AS lng,
+				Y(historia.ubicacion) AS lat,
+				historia.fecha_creacion,
+				historia.tipo_historia,
+				historia.url_noticia,
+				historia.solucionado,
+				historia.tipo_reporte,
+				historia.descripcion,
+				historia.dia_hora_evento,
+				historia.direccion_evento,
+				GROUP_CONCAT(barrio.nombre) AS barrios
+			FROM
+				historia
+			INNER JOIN usuario ON historia.usuario_id = usuario.usuario_id
+			INNER JOIN historia_barrio ON historia.historia_id = historia_barrio.historia_id
+			INNER JOIN barrio ON historia_barrio.barrio_id = barrio.barrio_id
+			WHERE
+				usuario.nombre_de_usuario = '$usuario'
+			";
+	
+	if (!empty($antes_de)) {
+
+		$antes_de_datetime = new DateTime();
+		$antes_de_datetime->setTimeStamp($antes_de);
+		$antes_de = $antes_de_datetime->format('Y-m-d H:i:s');
+
+		$sql .= " AND historia.fecha_creacion < '$antes_de'";
+
+	}
+	$sql .= " GROUP BY
+				historia.historia_id
+			ORDER BY 
+				historia.fecha_creacion DESC
+			LIMIT 0, 1";
 
 	if ($resultado = $mysqli->query($sql)) {
 		while ($fila = $resultado->fetch_assoc()) {

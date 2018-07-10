@@ -11,31 +11,43 @@ var App = (function() {
 
 	var loadingMoreStories = false;
 
+	var map = null;
+	var markers = {};
+	var infoWindow = null;
+	var mapBounds = null;
+
+	var lastStoryDateTime = null;
+
+	
+
 	// --------DASHBOARD--------
 
 	// Pide al servidor y carga las historias correspondientes al barrio seleccionado
-	var dashboardLoadStories = function(id, name) {
-
-		// Elimina el mensaje que se muestra cuando no hay barrio seleccionado
-		elems.noNeighborhood.removeClass('d-flex').addClass('d-none');
+	var dashboardLoadStories = function(callback) {
 
 		var dashboard = elems.dashboard;
-		dashboard.addClass('loading');
 
-		$.getJSON('http://localhost/api/historias.json', {}, function(result, status) {
+		var query = {
+			query: 'historias',
+			usuario: getUrlParameter('username')
+		};
+
+		if (lastStoryDateTime) {
+			query.antes_de = lastStoryDateTime;
+		}
+
+		$.getJSON('http://localhost/xaca/server/api/historia.php', query, function(result, status) {
 			if (status === 'error') {
 				// TO DO: Handle error
 			} else {
 
-				dashboard.append(
-					$('<div></div>')
-						.addClass('mt-4 mb-3 mx-3')
-						.html('Estás viendo historias de <strong>'+name+'</strong>')
-				);
+				if (callback) callback(result.data.length === 0);
 
 				result.data.forEach(function(historia) {
-					var card = dashboard
-						.removeClass('loading')
+
+					lastStoryDateTime = historia.fecha_creacion;
+					
+					var card = elems.dashboardStories
 						.append(historia.html)
 						.find('.card:last');
 
@@ -43,14 +55,18 @@ var App = (function() {
 					shortenDescriptions(card);
 
 					// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
-					card
-						.mouseenter(function() {
-							markers[historia.id].marker.setAnimation(google.maps.Animation.BOUNCE);
-						})
-						.mouseleave(function() {
-							markers[historia.id].marker.setAnimation(null);
+					var historiaID = 'id' + historia.id;
+					card.on({
+							'mouseenter': function() {
+								markers[historiaID].marker.setAnimation(google.maps.Animation.BOUNCE);
+							},
+							'mouseleave': function() {
+								markers[historiaID].marker.setAnimation(null);
+							}
 						});
 				});
+
+				mapSetMarkers(result.data);
 			}
 		});
 	}
@@ -58,16 +74,18 @@ var App = (function() {
 	var dashboardScrollBottom = function() {
 		var dashboard = elems.dashboard;
 
-		if (!loadingMoreStories && dashboard.scrollTop() + dashboard.outerHeight() > dashboard.prop('scrollHeight') - 62) {
+		if (!loadingMoreStories && dashboard.scrollTop() + dashboard.outerHeight() === dashboard.prop('scrollHeight')) {
+			elems.dashboardLoader.removeClass('d-none').addClass('d-block');
 			loadingMoreStories = true;
 
-			setTimeout(function() {
-				elems.dashboardLoader.before(
-					$('<div></div>').width('100%').height('400px').css('background', '#000')
-				);
+			dashboardLoadStories(function(noMoreStories) {
+				if (noMoreStories) {
+					dashboard.unbind('scroll');
+				}
 				loadingMoreStories = false;
+				elems.dashboardLoader.addClass('d-none').removeClass('d-block');
 	
-			}, 5000);
+			});
 		}
 	}
 
@@ -125,6 +143,80 @@ var App = (function() {
 		});
 	}
 
+	var mapSetMarkers = function(arrayOfMarkers) {
+
+		arrayOfMarkers.forEach(function(marker) {
+
+			var markerID = 'id' + marker.id;
+
+			if (markerID in markers) {
+				return false;
+			}
+
+			mapBounds.extend({
+				lat: marker.geometry.lat,
+				lng: marker.geometry.lng
+			});
+
+
+			markers[markerID] = {
+				marker: new google.maps.Marker({
+					position: marker.geometry,
+					map: map,
+					animation: google.maps.Animation.DROP,
+					icon: 'http://localhost/xaca/icons/spotlight-poi-'+marker.category+'.png'
+				}),
+				categoria: marker.category
+			}
+
+			markers[markerID].marker.addListener('click', function() {
+				
+				if ($(window).width() > 992) { // Está expandido -> se enfoca la historia seleccionada
+					var $card = $('#'+markerID);
+					var scrollTop = $card.length ? $card.position().top : 0;
+
+					$('.dashboard')
+					.animate({
+						scrollTop: '+=' + scrollTop
+					}, 1000);
+
+				} else { // Está contraído -> se abre una InfoWindow
+
+					infoWindow.open(map, markers[markerID].marker);
+
+					$.getJSON('http://localhost/api/historia.json', {}, function(response, status) {
+						if (status !== 'error') {
+							infoWindow.setContent(response.data[0].html);
+						}
+					});
+				}
+
+			});
+		});
+
+		map.fitBounds(mapBounds);
+
+	}
+
+	// --------OTHERS--------
+
+	var getUrlParameter = function getUrlParameter(sParam) {
+		var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+			sURLVariables = sPageURL.split('&'),
+			sParameterName,
+			i;
+	
+		for (i = 0; i < sURLVariables.length; i++) {
+			sParameterName = sURLVariables[i].split('=');
+	
+			if (sParameterName[0] === sParam) {
+				return sParameterName[1] === undefined ? true : sParameterName[1];
+			}
+		}
+	}
+
+
+
 	// --------GENERAL--------
 
 	// Función que selecciona todos los elementos necesarios y los retorna en un objeto
@@ -134,6 +226,7 @@ var App = (function() {
 		// Dashboard
 		self.dashboard = $('.dashboard');
 		self.dashboardLoader = $('.dashboard .loader');
+		self.dashboardStories = $('.dashboard__stories');
 
 		// Map
 		self.mapFilterButtons = $('.button--category');
@@ -156,14 +249,205 @@ var App = (function() {
 		// Asigna a elem los elementos
 		elems = enlazarElems();
 		enlazarFunciones();
+
+		dashboardLoadStories();
 		
 	}
 
+	var initMap = function() {
+		map = new google.maps.Map(document.getElementById('map'), {
+			zoom: 13,
+			center: new google.maps.LatLng(-38.7184, -62.2664),
+			clickableIcons: false,
+			disableDefaultUI: true,
+		    maxZoom: 16,
+			minZoom: 12,
+			streetViewControl: false,
+			mapTypeControl: false,
+			styles: [
+			  {
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#f5f5f5"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.icon",
+				"stylers": [
+				  {
+					"visibility": "off"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#616161"
+				  }
+				]
+			  },
+			  {
+				"elementType": "labels.text.stroke",
+				"stylers": [
+				  {
+					"color": "#f5f5f5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "administrative.land_parcel",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#bdbdbd"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#eeeeee"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#757575"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi.park",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#e5e5e5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "poi.park",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#ffffff"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.arterial",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#757575"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.highway",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#dadada"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.highway",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#616161"
+				  }
+				]
+			  },
+			  {
+				"featureType": "road.local",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  },
+			  {
+				"featureType": "transit.line",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#e5e5e5"
+				  }
+				]
+			  },
+			  {
+				"featureType": "transit.station",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#eeeeee"
+				  }
+				]
+			  },
+			  {
+				"featureType": "water",
+				"elementType": "geometry",
+				"stylers": [
+				  {
+					"color": "#c9c9c9"
+				  }
+				]
+			  },
+			  {
+				"featureType": "water",
+				"elementType": "labels.text.fill",
+				"stylers": [
+				  {
+					"color": "#9e9e9e"
+				  }
+				]
+			  }
+			]
+		});
+
+		google.maps.event.addListener(map, 'click', function() {
+			infoWindow.close();
+		});
+
+		infoWindow = new google.maps.InfoWindow({
+			content: '<img src="icons/loader.gif" width="30" height="30" class="mx-auto my-5">'
+		});
+
+		mapBounds = new google.maps.LatLngBounds();
+
+	}
+
 	return {
-		init: init
+		init: init,
+		initMap : initMap
 	};
 
 
 })();
 
-$(document).ready(App.init);
+
+function initMap() {
+	$(document).ready(App.init);
+	$(document).ready(App.initMap);
+}

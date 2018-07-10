@@ -50,6 +50,11 @@
 	font-size: 14px;
 }
 
+.card__reporte .card__img {
+	height: 200px !important;
+}
+
+
 @media (max-width: 992px) {
 
 	.dashboard {
