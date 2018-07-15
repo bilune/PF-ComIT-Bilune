@@ -1,4 +1,5 @@
 <?php
+session_start();
 
 if (isset($_GET['username'])) {
 	$username = $_GET['username'];
@@ -15,14 +16,14 @@ $mysqli->set_charset("utf8");
 // Datos de usuario
 $sql = "SELECT
 			nombre,
+			nombre_de_usuario,
 			biografia,
 			imagen_perfil,
-			imagen_portada,
-			color
+			imagen_portada
 		FROM
 			usuario
 		WHERE
-			usuario_id = 1";
+			nombre_de_usuario = '$username'";
 
 if ($resultado = $mysqli->query($sql)) {
 	$datos_usuario  = $resultado->fetch_assoc();
@@ -65,40 +66,77 @@ $sql2 = "SELECT
 	<div class="app expanded">
 
 		<!-- Navbar -->
-		<nav class="navbar navbar-expand navbar-light fixed-top" style="background-color: <?php echo $datos_usuario['color']; ?>">
+		<nav class="navbar navbar-expand navbar-light fixed-top bg-light">
 
 			<!-- Navbar Logo -->
 			<a class="navbar-brand nav__logo">
-				<img src="icons/xaca-logo-<?php echo color_contrast($datos_usuario['color']) == '#fff' ? 'b' : 'w'; ?>.svg" height="30" width="80" alt="Logo xacá">
+				<img src="icons/xaca-logo-color.svg" height="30" width="80" alt="Logo xacá">
 			</a>
 
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Alternar navegación">
 				<span class="navbar-toggler-icon"></span>
 			</button>
 
-			<div class="collapse navbar-collapse" id="mainNavbar">
-				<button class="btn btn-primary ml-auto">
-					<span class="d-inline d-lg-none">Entrar</span>
-					<span class="d-none d-lg-inline">Iniciar sesión</span>
-				</button>
-			</div>
-			
+		<?php
+			if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
+				$username = $_SESSION['username'];
+				$imagen_perfil = !empty($datos_usuario['imagen_perfil']) ? 'images/usuarios/' . $datos_usuario['imagen_perfil'] : 'images/custom-profile.jpg';
+				echo '
+			<li class="nav-item dropdown ml-auto">
+				<a class="dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+				<img class="rounded-circle" src="' . $imagen_perfil . '" width="40" height="40">
+				</a>
+				<div class="dropdown-menu" aria-labelledby="navbarDropdown">
+					<a class="dropdown-item" href="dashboard.php">
+						<img src="icons/dashboard.svg">
+						Inicio
+					</a>
+					<a class="dropdown-item" href="setup.php">
+						<img class="rounded-circle" src="icons/settings.svg">
+						Configuración
+					</a>
+					<div class="dropdown-divider"></div>
+					<a class="dropdown-item" href="server/logout.php?return='. base64_encode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) .'">
+						<img class="rounded-circle" src="icons/logout.svg">
+						Cerrar sesión
+					</a>
+				</div>
+			</li>
+				';
+		} else {
+				echo '
+			<a href="login.php" class="btn btn-primary ml-auto">
+				<span class="d-none d-sm-inline">Iniciar sesión</span>
+				<span class="d-inline d-sm-none">Entrar</span>
+			</a>';
+			}
+		?>			
 		</nav>
 
 
-		<div class="dashboard py-5">
+		<div class="dashboard pb-5">
 			
 			<!-- Profile -->
 		<?php
+
+		if (!empty($datos_usuario['imagen_portada'])) {
+			$imagen_portada = 
+				'<figure class="profile__header">
+					<img src="images/usuarios/' . $datos_usuario['imagen_portada'] . '" alt="Imagen de portada de ' . $datos_usuario['nombre'] . '">
+				</figure>';
+		} else {
+			$imagen_portada = '';
+		}
+
+		$imagen_perfil = !empty($datos_usuario['imagen_perfil']) ? 'images/usuarios/' . $datos_usuario['imagen_perfil'] : 'images/custom-profile.jpg';
+
 		echo 
 			'<div class="profile bg-white px-3 pb-2 pb-lg-4 mb-4">
-				<figure class="profile__header">
-					<img src="' . $datos_usuario['imagen_portada'] . '" alt="Imagen de portada de ' . $datos_usuario['nombre'] . '">
-				</figure>
-				<img src="' . $datos_usuario['imagen_perfil'] . '" class="profile__picture img-thumbnail" alt="Imagen de perfil de ' . $datos_usuario['nombre'] . '">
+				' . $imagen_portada . '
+				<img src="' . $imagen_perfil . '" class="profile__picture img-thumbnail" alt="Imagen de perfil de ' . $datos_usuario['nombre'] . '">
 
 				<h1 class="profile__name h3 mb-0">' . $datos_usuario['nombre'] . '</h1>
-				<div class="profile__username text-muted">@' . $username . '</div>
+				<div class="profile__username text-muted">@' . $datos_usuario['nombre_de_usuario'] . '</div>
 				<div class="profile__bio text-center mt-3">
 					' . $datos_usuario['biografia'] . '
 				</div>
@@ -158,25 +196,6 @@ function error404() {
 	http_response_code(404);
 	include('my_404.php');
 	die();
-}
-
-function color_contrast($color) {
-    $color = str_replace('#', '', $color);
-	if (strlen($color) != 6){ return '000000'; }
-
-	// Se invierte y se convierte a rgb
-    $rgb = array(
-		'r' => 255 - hexdec(substr($color,0,2)),
-		'g' => 255 - hexdec(substr($color,2,2)),
-		'b' => 255 - hexdec(substr($color,4,2))
-	);
-	
-	$intensity = floor(0.3 * $rgb['r'] + 0.59 * $rgb['g'] + 0.11 * $rgb['b']);
-	if ($intensity > 127.5) {
-		return '#000';
-	} else {
-		return '#fff';
-	}
 }
 
 ?>

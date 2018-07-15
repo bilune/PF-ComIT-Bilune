@@ -1,3 +1,54 @@
+<?php
+
+if (isset($_POST['username']) && isset($_POST['password'])) {
+
+	session_start();
+
+	$host_db = 'localhost';
+	$user_db = 'root';
+	$pass_db = '';
+	$db_name = 'xaca';
+	$tbl_name = 'usuario';
+	
+	$conexion = new mysqli($host_db, $user_db, $pass_db, $db_name);
+	
+	if ($conexion->connect_error) {
+		die('La conexión falló: ' . $conexion->connect_error);
+	}
+
+	$conexion->set_charset('utf8');
+	
+	$username = $_POST['username'];
+	$password = $_POST['password'];
+	
+	$sql = "SELECT * FROM $tbl_name WHERE nombre_de_usuario = '$username' OR email = '$username'";
+	
+	$result = $conexion->query($sql);
+	
+	if ($result && $result->num_rows > 0) {
+		$row = $result->fetch_assoc();
+		if (password_verify($password, $row['contraseña'])) {
+			$_SESSION['loggedin'] = true;
+			$_SESSION['username'] = $username;
+			$_SESSION['usuario_id'] = $row['usuario_id'];
+			$_SESSION['nombre'] = $row['nombre'];
+			$_SESSION['start'] = time();
+			$_SESSION['expire'] = $_SESSION['start'] + (5 * 60);
+		
+			header('Location: http://localhost/xaca/dashboard.php');
+		} else {
+			$fallo = true;
+		}
+	} else {
+		$fallo = true;
+	}
+	
+	$conexion->close();
+	
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,24 +78,30 @@
 		<div class="row my-5">
 			<div class="col-12 col-md-5">
 				<h3 class="my-3">Ingresá a tu cuenta</h3>
-				<form class="mb-3">
+				<form class="mb-3" method="post" action="login.php">
 					<div class="form-group">
-						<label for="exampleInputEmail1">Usuario o email</label>
-						<input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp">
-						<small id="emailHelp" class="form-text">No vamos a compartir tu email con nadie más.</small>
+						<label for="username">Usuario o email</label>
+						<input type="text" class="form-control" id="username" name="username">
 					</div>
 					<div class="form-group">
-						<label for="exampleInputPassword1">Contraseña</label>
-						<input type="password" class="form-control" id="exampleInputPassword1">
+						<label for="password">Contraseña</label>
+						<input type="password" class="form-control" id="password" name="password">
 					</div>
 					<div class="form-group form-check">
-						<input type="checkbox" class="form-check-input" id="exampleCheck1">
-						<label class="form-check-label" for="exampleCheck1">Recordarme</label>
+						<input type="checkbox" class="form-check-input" id="recordarme" name="recordarme">
+						<label class="form-check-label" for="recordarme">Recordarme</label>
 					</div>
 					<button type="submit" class="btn btn-secondary px-5">Entrar</button>
+
+				<?php
+					if (isset($fallo) && $fallo) {
+						echo '<span class="text-white">Usuario o contraseña incorrectos.</span>';
+					}
+					
+				?>
 				</form>
 
-				<a href="#" class="text-white">Aún no estoy registrado.</a>
+				<a href="register.php" class="text-white">Aún no estoy registrado.</a>
 
 			</div>
 			<div class="col-12 d-hide col-md-6 offset-md-1 text-right d-md-flex flex-column justify-content-center">

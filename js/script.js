@@ -88,7 +88,11 @@ var App = (function() {
 						lng: historia.geometry.lng
 					});
 
-					lastStoryDateTime = historia.fecha_creacion;
+					if (lastStoryDateTime && lastStoryDateTime > historia.fecha_creacion) {
+						lastStoryDateTime =  historia.fecha_creacion;
+					} else if (!lastStoryDateTime) {
+						lastStoryDateTime = historia.fecha_creacion;
+					}
 
 					var card = elems.stories
 						.append(historia.html)
@@ -137,7 +141,9 @@ var App = (function() {
 						lng: historia.geometry.lng
 					});
 
-					lastStoryDateTime = historia.fecha_creacion;
+					if (lastStoryDateTime && lastStoryDateTime > historia.fecha_creacion) {
+						lastStoryDateTime =  historia.fecha_creacion;
+					}
 
 					var card = elems.stories
 						.append(historia.html)
@@ -177,7 +183,7 @@ var App = (function() {
 	var dashboardScrollBottom = function() {
 		var dashboard = elems.dashboard;
 
-		if (!loadingMoreStories && dashboard.scrollTop() + dashboard.outerHeight() === dashboard.prop('scrollHeight')) {
+		if (!loadingMoreStories && dashboard.scrollTop() + dashboard.outerHeight() >= dashboard.prop('scrollHeight')) {
 			elems.dashboardLoader.removeClass('d-none').addClass('d-block');
 			loadingMoreStories = true;
 
@@ -274,19 +280,42 @@ var App = (function() {
 			if (status === 'error') {
 				preview.text('Algo falló.');
 			} else {
-				if (result.html) {
+				if (result.data.html) {
 					$this
 						.val('Publicar')
 						.prop('disabled', true);
-					preview.html(result.html);
+					preview.html(result.data.html);
 
 					mapSelectPoint(elems.postNoticia, function(latLng) {
 						if (latLng) {
-							// TO DO: PUBLICAR INFORMACIÓN
+
+							$this.unbind('click').on('click', function(e) {
+								e.preventDefault();
+								var barrios = [];
+								$.each(elems.postNoticiaBarrios.find('input'), function(i, elem) {
+									elem = $(elem);
+									if (elem.prop('checked')) {
+										barrios.push(elem.val());
+									}
+								});
+
+								postStory({
+									categoria: 'noticias',
+									url: url,
+									barrios: barrios,
+									ubicacion: JSON.stringify(latLng)
+								});
+							});
+							
 						} else {
 							// Elección de punto cancelada
 							preview.empty();
-							$this.val('Previsualizar').prop('disabled', false);
+							$this
+								.val('Previsualizar')
+								.prop('disabled', false)
+								.unbind('click')
+								.on('click', postNoticiaSubmit);
+
 						}
 					});
 				} else {
@@ -310,13 +339,41 @@ var App = (function() {
 
 		if (data.titulo !== '' && data.fecha !== '' && data.hora !== '') {
 			mapSelectPoint(elems.postEvento, function(latLng) {
+
 				if (latLng) {
-					$this.val('Publicar');
-					// TO DO: PUBLICAR INFORMACIÓN
+
+					$this
+						.val('Publicar')
+						.unbind('click')
+						.on('click', function(e) {
+							e.preventDefault();
+
+							var barrios = [];
+							$.each(elems.postEventoBarrios.find('input'), function(i, elem) {
+								elem = $(elem);
+								if (elem.prop('checked')) {
+									barrios.push(elem.val());
+								}
+							});
+
+							data.categoria = 'eventos';
+							data.barrios = barrios;
+							data.imagen = elems.postEvento.find('#imagen-evento').get(0).files[0];
+							data.ubicacion = JSON.stringify(latLng);
+
+							postStory(data);
+						});
+					
 				} else {
 					// Elección de punto cancelada
-					$this.val('Ubicar');
+					$this
+						.val('Ubicar')
+						.prop('disabled', false)
+						.unbind('click')
+						.on('click', postEventoSubmit);
+
 				}
+
 			});
 		} else {
 			var elementos = elems.postEvento.find('#titulo-evento, #fecha-evento, #hora-evento');
@@ -338,12 +395,39 @@ var App = (function() {
 		if (data.titulo !== '' && data.tipo !== '') {
 			mapSelectPoint(elems.postReporte, function(latLng) {
 				if (latLng) {
-					$this.val('Publicar');
-					// TO DO: PUBLICAR INFORMACIÓN
+
+					$this
+						.val('Publicar')
+						.unbind('click')
+						.on('click', function(e) {
+							e.preventDefault();
+
+							var barrios = [];
+							$.each(elems.postReporteBarrios.find('input'), function(i, elem) {
+								elem = $(elem);
+								if (elem.prop('checked')) {
+									barrios.push(elem.val());
+								}
+							});
+
+							data.categoria = 'reportes';
+							data.barrios = barrios;
+							data.imagen = elems.postReporte.find('#imagen-reporte').get(0).files[0];
+							data.ubicacion = JSON.stringify(latLng);
+
+							postStory(data);
+						});
+					
 				} else {
 					// Elección de punto cancelada
-					$this.val('Ubicar');
+					$this
+						.val('Ubicar')
+						.prop('disabled', false)
+						.unbind('click')
+						.on('click', postReporteSubmit);
+
 				}
+
 			});
 		} else {
 			var elementos = elems.postReporte.find('#titulo-reporte, #tipo-reporte');
@@ -435,6 +519,78 @@ var App = (function() {
 
 	}
 
+	var postStory = function(data = {}) {
+
+		var formData = new FormData();
+
+		for (var key in data) {
+			if (Array.isArray(data[key])) {
+				formData.append(key, JSON.stringify(data[key]));
+			} else {
+				formData.append(key, data[key]);
+			}
+		}
+
+		$.ajax({
+			url: 'http://localhost/xaca/server/api/historia.php',
+			data: formData,
+			processData: false,
+			contentType: false,
+			type: 'POST',
+			success: function(result) {
+				elems.postStoryCancelButton.click();
+				elems.postStoryResult
+					.addClass('bg-success')
+					.removeClass('bg-danger')
+					.text('La historia fue publicada correctamente.')
+					.slideDown(300)
+					.delay(4000)
+					.slideUp(300);
+
+				if ($.inArray( selectedBarrioID, result.data.barrios ) !== -1) {
+					mapSetMarkers([{
+						id: result.data.id,
+						geometry: result.data.geometry,
+						category: result.data.categoria
+					}]);
+
+					var card = elems.stories
+					.prepend(result.data.html)
+					.find('.card:first')
+					.addClass('mx-3 mx-md-5 mx-lg-2 mx-xl-3')
+
+					// Eventos para resaltar marcador cuando se hace 'hover' sobre una historia
+					.on('mouseenter mouseleave', function(e) {
+						var animation = e.type === 'mouseenter' ? google.maps.Animation.BOUNCE : null;
+						var id = $(this).attr('id');
+
+						if (typeof markers[id] !== 'undefined') {
+							markers[id].marker.setAnimation(animation);
+						}
+					})
+
+					.find('.card__timeago')
+					.text(moment.unix(result.data.fecha_creacion).fromNow());
+
+				// Acorta los textos de las historias y agrega un botón para ver más
+				shortenDescriptions(card);
+
+				}
+			},
+			error: function() {
+				elems.postStoryCancelButton.click();
+				elems.postStoryResult
+					.removeClass('bg-success')
+					.addClass('bg-danger')
+					.text('Algo falló. Por favor reintente nuevamente.')
+					.slideDown(300)
+					.delay(4000)
+					.slideUp(300);
+			}
+		  });
+		  
+	}
+
 	// --------NAV--------
 
 	// Enfoca el input para buscar los barrios
@@ -466,7 +622,6 @@ var App = (function() {
 				});
 			},
 			close: function() {
-				console.log('closed');
 				$this = $(this);
 				setTimeout(function(){
 					$this.blur();
@@ -478,7 +633,6 @@ var App = (function() {
 
 	// Abre el autocomplete cuando se hace click en el input
 	var autocompleteOpen = function(e) {
-		console.log(e);
 		var value = elems.navbarSearchInput.val();
 		elems.navbarSearchInput.autocomplete('search', value);
 	}
@@ -486,13 +640,13 @@ var App = (function() {
 	// Se ejecuta cuando se selecciona una opción del autocomplete
 	// Se cargan historias en 'Dashboard' y límites en el mapa
 	var autocompleteSelect = function(e, ui) {
-		e.preventDefault();
+		if (e) e.preventDefault();
 
-		elems.navbarSearchInput
-			// .autocomplete('close')
-			.val('');
+		elems.navbarSearchInput.val('');
 	
 		dashboardOpen();
+
+		localStorage.setItem('last_barrio_id', JSON.stringify(ui));
 
 		$.getJSON('server/api/barrio.php', {
 			query: 'limites',
@@ -507,7 +661,12 @@ var App = (function() {
 					mapFitBounds(result.data.boundingBox, result.data.bounds);
 
 					if (noStories) {
-						elems.noStories.removeClass('d-none').addClass('d-flex');
+						elems.noStories
+							.removeClass('d-none')
+							.addClass('d-flex')
+							.children('span')
+							.html('No encontramos historias en ' + ui.item.value + '.<br> ¡Sé el primero en publicar!');
+
 						elems.ubicacionActual
 							.addClass('d-none')
 							.children('strong')
@@ -534,10 +693,6 @@ var App = (function() {
 			query: 'markers'
 		}, function(response, status) {
 			if (status !== 'error') {
-
-				infoWindow = new google.maps.InfoWindow({
-					content: '<img src="icons/loader.gif" width="30" height="30" class="mx-auto my-5">'
-				});
 
 				mapSetMarkers(response.data);
 
@@ -726,6 +881,7 @@ var App = (function() {
 		self.noNeighborhood = $('.dashboard__no-barrio');
 		self.noStories = $('.dashboard__no-stories');
 
+		self.postStoryResult = $('.post-story__result');
 		self.postStoryButtons = $('.post-story__button');
 		self.postStoryForms = $('.post-story__form');
 		self.postStoryCancelButton = $('.post-story__cancel-button');
@@ -735,9 +891,11 @@ var App = (function() {
 		self.postNoticiaSubmitButton = $('.post-story__form--noticia .post-story__submit-button');
 
 		self.postEvento = $('.post-story__form--evento');
+		self.postEventoBarrios = $('.post-story__form--evento .post-story__form--barrios');
 		self.postEventoSubmitButton = $('.post-story__form--evento .post-story__submit-button');
 
 		self.postReporte = $('.post-story__form--reporte');
+		self.postReporteBarrios = $('.post-story__form--reporte .post-story__form--barrios');
 		self.postReporteSubmitButton = $('.post-story__form--reporte .post-story__submit-button');
 
 		self.ubicacionActual = $('.dashboard__ubicacion');
@@ -794,6 +952,16 @@ var App = (function() {
 		// Vuelve la sección 'Dashboard' a la última posición deseada por el usuario
 		if (localStorage.getItem('nav') === 'expanded') {
 			dashboardOpen();
+		}
+
+		var last_barrio_id = localStorage.getItem('last_barrio_id');
+		if (typeof last_barrio_id !== 'null') {
+			try {
+				var ui = JSON.parse(last_barrio_id);
+				autocompleteSelect(undefined, ui);
+			} catch (e) {
+				console.error('Error: ', e);
+			}
 		}
 		
 	}
@@ -971,7 +1139,11 @@ var App = (function() {
 			]
 		});
 
-		mapLoadMarkers();
+		// mapLoadMarkers();
+
+		infoWindow = new google.maps.InfoWindow({
+			content: '<img src="icons/loader.gif" width="30" height="30" class="mx-auto my-5">'
+		});
 
 		google.maps.event.addListener(map, 'click', function() {
 			infoWindow.close();
@@ -987,8 +1159,8 @@ var App = (function() {
 
 })();
 
-$(document).ready(App.initApp);
 
 function initMap() {
-	App.initMap();
+	$(document).ready(App.initApp);
+	$(document).ready(App.initMap);
 }

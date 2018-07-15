@@ -41,7 +41,7 @@ var App = (function() {
 				// TO DO: Handle error
 			} else {
 
-				if (callback) callback(result.data.length === 0);
+				callback(result.data.length === 0);
 
 				result.data.forEach(function(historia) {
 
@@ -66,7 +66,9 @@ var App = (function() {
 						});
 				});
 
-				mapSetMarkers(result.data);
+				if (result.data.length > 0) {
+					mapSetMarkers(result.data);
+				}
 			}
 		});
 	}
@@ -250,7 +252,11 @@ var App = (function() {
 		elems = enlazarElems();
 		enlazarFunciones();
 
-		dashboardLoadStories();
+		dashboardLoadStories(function(noStories) {
+			if (noStories) {
+				elems.dashboardStories.append('<div class="text-center mt-5">No hay historias.</div>');
+			}
+		});
 		
 	}
 

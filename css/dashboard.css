@@ -9,6 +9,11 @@ a:link, a:hover {
 body {
 	margin: 0;
 	overflow: hidden;
+	font-weight: 300;
+}
+
+.btn {
+	font-weight: 500;
 }
 
 .app {
@@ -44,6 +49,10 @@ body {
 .post-story {
 	border: 1px solid rgba(0,0,0,.125);
 	background-color: #fff;
+}
+
+.post-story__result {
+	display: none;
 }
 
 .loading {
@@ -99,14 +108,14 @@ body {
 .map__nav {
 	max-width: 40px;
 	position: absolute;
-	left: 15px;
+	right: 15px;
 	bottom: 15px;
 	transition: right .5s ease;
 	z-index: 10;
 }
 
 .map__nav a {
-	float: left;
+	float: right;
 	margin: 5px 0;
 }
 
@@ -157,6 +166,27 @@ body {
 	left: 50%;
 	transform: translateX(-50%);
 	
+}
+
+.dropdown {
+	list-style: none;
+}
+
+.dropdown-menu {
+	right: 0;
+	left: auto;
+}
+
+.dropdown-item {
+	padding: .5rem 1.5rem;
+	font-weight: 300;
+}
+
+.dropdown-item img {
+	width: 20px;
+	height: 20px;
+	margin-bottom: 2px;
+	margin-right: .5rem;
 }
 
 
@@ -308,8 +338,9 @@ body {
 .card__reporte .card__img {
 	border-radius: 10px;
 	overflow: hidden;
-	width: auto;
-	height: 300px;
+	width: 50%;
+	height: 200px;
+	margin-left: 20px;
 }
 
 .card-body {
@@ -466,5 +497,12 @@ body {
 	.card__reporte .card__img {
 		height: 150px;
 	}
-	
+
+}
+
+@media (max-width: 1200px) and (min-width: 992px) {
+	.card__img {
+		width: 100% !important;
+	}
+
 }
