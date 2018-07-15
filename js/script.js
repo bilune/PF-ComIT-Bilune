@@ -50,7 +50,7 @@ var App = (function() {
 		localStorage.setItem('nav', 'expanded');
 	}
 
-	// Abre la sección 'Dashboard'
+	// Cierra la sección 'Dashboard'
 	var dashboardClose = function(e) {
 		if (e) e.preventDefault();
 		
