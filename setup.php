@@ -135,7 +135,7 @@ if ($resultado = $mysqli->query($sql)) {
 	<?php
 	if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
 		$username = $_SESSION['username'];
-		$imagen_perfil = !empty($row['imagen_perfil']) ? $row['imagen_perfil'] : 'images/custom-profile.jpg';
+		$imagen_perfil = !empty($datos_usuario['imagen_perfil']) ? 'images/usuarios/'.$datos_usuario['imagen_perfil'] : 'images/custom-profile.jpg';
 		echo '
 	<li class="nav-item dropdown ml-auto">
 		<a class="dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -150,12 +150,16 @@ if ($resultado = $mysqli->query($sql)) {
 				<img src="icons/account.svg">
 				Perfil
 			</a>
-			<div class="dropdown-divider"></div>
-			<a class="dropdown-item" href="server/logout.php">
-				<img class="rounded-circle" src="icons/logout.svg">
-				Cerrar sesión
+			<a class="dropdown-item" href="reportes.php">
+				<img src="icons/alert.svg">
+				Mis Reportes
 			</a>
-		</div>
+			<div class="dropdown-divider"></div>
+				<a class="dropdown-item" href="server/logout.php">
+					<img class="rounded-circle" src="icons/logout.svg">
+					Cerrar sesión
+				</a>
+			</div>
 	</li>
 		';
 	} else {
@@ -188,7 +192,7 @@ if ($resultado = $mysqli->query($sql)) {
 				<form action="setup.php" method="post">
 					<div class="form-group">
 						<span for="usuario">Usuario</span>
-						<span class="font-weight-bold"><?php echo $datos_usuario['nombre_de_usuario']; ?></span>
+						<span class="font-weight-bold">@<?php echo $datos_usuario['nombre_de_usuario']; ?></span>
 					</div>
 					<div class="form-group">
 						<label for="email">Correo electrónico</label>

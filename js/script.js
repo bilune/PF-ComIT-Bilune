@@ -960,7 +960,7 @@ var App = (function() {
 				var ui = JSON.parse(last_barrio_id);
 				autocompleteSelect(undefined, ui);
 			} catch (e) {
-				console.error('Error: ', e);
+				//do nothing
 			}
 		}
 		

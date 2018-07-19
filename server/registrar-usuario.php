@@ -34,7 +34,7 @@ if ($result->num_rows != 0) {
 					('$username', '$hash', '$email', '$nombre')";
 
 	if ($conexion->query($query)) {
-		header('Location: http://localhost/xaca/dashboard.php');
+		header('Location: http://localhost/xaca/login.php');
 	} else {
 		echo 'Error al crear el usuario. <br>' . $conexion->error;
 	}

@@ -26,3 +26,9 @@ body {
 h3 {
 	font-family: 'Poppins', sans-serif;
 }
+
+@media (max-width: 768px) {
+	.slogan {
+		font-size: 12vw;
+	}
+}

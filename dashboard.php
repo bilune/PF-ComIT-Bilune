@@ -96,6 +96,10 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
 							<img src="icons/settings.svg">
 							Configuración
 						</a>
+						<a class="dropdown-item" href="reportes.php">
+							<img src="icons/alert.svg">
+							Mis Reportes
+						</a>
 						<div class="dropdown-divider"></div>
 						<a class="dropdown-item" href="server/logout.php?return='. base64_encode('http://localhost/xaca/dashboard.php') .'">
 							<img src="icons/logout.svg">

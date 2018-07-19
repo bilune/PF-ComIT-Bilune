@@ -95,6 +95,10 @@ $sql2 = "SELECT
 						<img class="rounded-circle" src="icons/settings.svg">
 						Configuración
 					</a>
+						<a class="dropdown-item" href="reportes.php">
+							<img src="icons/alert.svg">
+							Mis Reportes
+						</a>
 					<div class="dropdown-divider"></div>
 					<a class="dropdown-item" href="server/logout.php?return='. base64_encode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']) .'">
 						<img class="rounded-circle" src="icons/logout.svg">
@@ -166,7 +170,6 @@ $sql2 = "SELECT
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
 	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8oXiSBU_IwCglfAkh8b-FnnesQ7qxoyY&callback=initMap"></script>
 	<script src="js/bootstrap.min.js"></script>
-	<!-- <script src="js/map-profile.js"></script> -->
 	<script src="js/script-profile.js"></script>
 	<script>
 	$(function() {
